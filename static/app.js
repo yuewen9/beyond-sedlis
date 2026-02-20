@@ -18,51 +18,51 @@ const elements = {
 };
 
 // Risk lookup table from Table 3 (Beyond Sedlis paper)
-// Key: (Vascular Invasion, DSI Category, Size Category) → Risk Percentage
+// Key: "Vascular Invasion|DSI Category|Size Category" → Risk Percentage
 const RISK_LOOKUP_TABLE = {
     "SCC": {
         // VI=No
-        ["No", "Superficial", "<2cm"]: 5,     // <5%
-        ["No", "Middle", "<2cm"]: 18,
-        ["No", "Deep", "<2cm"]: 32,
-        ["No", "Superficial", "2-4cm"]: 5,    // <5%
-        ["No", "Middle", "2-4cm"]: 22,
-        ["No", "Deep", "2-4cm"]: 38,
-        ["No", "Superficial", ">=4cm"]: 10,
-        ["No", "Middle", ">=4cm"]: 28,
-        ["No", "Deep", ">=4cm"]: 42,
+        "No|Superficial|<2cm": 5,
+        "No|Middle|<2cm": 18,
+        "No|Deep|<2cm": 32,
+        "No|Superficial|2-4cm": 5,
+        "No|Middle|2-4cm": 22,
+        "No|Deep|2-4cm": 38,
+        "No|Superficial|>=4cm": 10,
+        "No|Middle|>=4cm": 28,
+        "No|Deep|>=4cm": 42,
         // VI=Yes
-        ["Yes", "Superficial", "<2cm"]: 5,    // <5%
-        ["Yes", "Middle", "<2cm"]: 22,
-        ["Yes", "Deep", "<2cm"]: 38,
-        ["Yes", "Superficial", "2-4cm"]: 8,
-        ["Yes", "Middle", "2-4cm"]: 26,
-        ["Yes", "Deep", "2-4cm"]: 40,
-        ["Yes", "Superficial", ">=4cm"]: 14,
-        ["Yes", "Middle", ">=4cm"]: 32,
-        ["Yes", "Deep", ">=4cm"]: 46,
+        "Yes|Superficial|<2cm": 5,
+        "Yes|Middle|<2cm": 22,
+        "Yes|Deep|<2cm": 38,
+        "Yes|Superficial|2-4cm": 8,
+        "Yes|Middle|2-4cm": 26,
+        "Yes|Deep|2-4cm": 40,
+        "Yes|Superficial|>=4cm": 14,
+        "Yes|Middle|>=4cm": 32,
+        "Yes|Deep|>=4cm": 46,
     },
     "AC": {
         // VI=No
-        ["No", "Superficial", "<2cm"]: 5,     // <5%
-        ["No", "Middle", "<2cm"]: 5,          // <5%
-        ["No", "Deep", "<2cm"]: 6,
-        ["No", "Superficial", "2-4cm"]: 24,
-        ["No", "Middle", "2-4cm"]: 20,
-        ["No", "Deep", "2-4cm"]: 26,
-        ["No", "Superficial", ">=4cm"]: 34,
-        ["No", "Middle", ">=4cm"]: 30,
-        ["No", "Deep", ">=4cm"]: 36,
+        "No|Superficial|<2cm": 5,
+        "No|Middle|<2cm": 5,
+        "No|Deep|<2cm": 6,
+        "No|Superficial|2-4cm": 24,
+        "No|Middle|2-4cm": 20,
+        "No|Deep|2-4cm": 26,
+        "No|Superficial|>=4cm": 34,
+        "No|Middle|>=4cm": 30,
+        "No|Deep|>=4cm": 36,
         // VI=Yes
-        ["Yes", "Superficial", "<2cm"]: 20,
-        ["Yes", "Middle", "<2cm"]: 18,
-        ["Yes", "Deep", "<2cm"]: 22,
-        ["Yes", "Superficial", "2-4cm"]: 40,
-        ["Yes", "Middle", "2-4cm"]: 38,
-        ["Yes", "Deep", "2-4cm"]: 42,
-        ["Yes", "Superficial", ">=4cm"]: 50,
-        ["Yes", "Middle", ">=4cm"]: 46,
-        ["Yes", "Deep", ">=4cm"]: 52,
+        "Yes|Superficial|<2cm": 20,
+        "Yes|Middle|<2cm": 18,
+        "Yes|Deep|<2cm": 22,
+        "Yes|Superficial|2-4cm": 40,
+        "Yes|Middle|2-4cm": 38,
+        "Yes|Deep|2-4cm": 42,
+        "Yes|Superficial|>=4cm": 50,
+        "Yes|Middle|>=4cm": 46,
+        "Yes|Deep|>=4cm": 52,
     }
 };
 
@@ -83,7 +83,7 @@ function getRiskLevel(riskPercent) {
 // Look up risk from table
 function lookupRisk(vi, dsi, sizeCm, tissueType) {
     const sizeCategory = getSizeCategory(sizeCm);
-    const key = [vi, dsi, sizeCategory];
+    const key = `${vi}|${dsi}|${sizeCategory}`;
 
     if (tissueType in RISK_LOOKUP_TABLE) {
         const table = RISK_LOOKUP_TABLE[tissueType];

@@ -14,36 +14,8 @@
         </header>
 
         <main class="main-content">
-            <!-- Upload Section -->
-            <section class="upload-section" id="uploadSection">
-                <div class="upload-area" id="uploadArea">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <h3>Upload PDF Document</h3>
-                    <p>Drag & drop your PDF here or click to browse</p>
-                    <p class="upload-hint">The PDF should contain Table 3 with recurrence risk parameters</p>
-                    <input type="file" id="fileInput" accept=".pdf" hidden>
-                    <button class="btn btn-primary" id="browseBtn">Browse Files</button>
-                </div>
-                <div class="upload-status" id="uploadStatus"></div>
-            </section>
-
-            <!-- Model Info Section -->
-            <section class="model-section hidden" id="modelSection">
-                <div class="model-header">
-                    <h3><span class="icon success">✓</span> Table 3 Parameters Loaded</h3>
-                    <button class="btn btn-secondary btn-sm" id="uploadNewBtn">Upload New PDF</button>
-                </div>
-                <div class="model-info" id="modelInfo">
-                    <!-- Populated dynamically -->
-                </div>
-            </section>
-
             <!-- Risk Calculator Form -->
-            <section class="calculator-section hidden" id="calculatorSection">
+            <section class="calculator-section" id="calculatorSection">
                 <h2 class="section-title">Calculate Recurrence Risk</h2>
 
                 <form id="riskForm" class="risk-form">
@@ -168,14 +140,6 @@
                 <div class="details-card">
                     <h3 class="details-title">Calculation Details</h3>
                     <div class="details-content" id="detailsContent">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-
-                <!-- Parameter Summary -->
-                <div class="params-card">
-                    <h3 class="details-title">Table 3 Parameters Used</h3>
-                    <div class="params-content" id="paramsContent">
                         <!-- Populated dynamically -->
                     </div>
                 </div>

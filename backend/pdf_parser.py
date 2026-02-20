@@ -258,7 +258,7 @@ class Table3Parser:
             table_data: Raw table data
 
         Returns:
-            Table3Metadata object
+            Table3Metadata object with risk lookup table
         """
         variables = []
         coefficients = {}
@@ -284,18 +284,47 @@ class Table3Parser:
             logger.warning("Could not extract variables from table, using fallback defaults")
             return self._create_fallback_model()
 
+        # Try to extract risk lookup table from table data
+        risk_lookup_table = self._extract_risk_lookup_table(table_data)
+
+        # If extraction failed, use default risk table
+        if not risk_lookup_table:
+            logger.info("Could not extract risk lookup table, using default from paper")
+            fallback = self._create_fallback_model()
+            risk_lookup_table = fallback.risk_lookup_table
+            notes.append("Using default nomogram risk lookup table")
+
         # Create metadata
         metadata = Table3Metadata(
             source_file=os.path.basename(self.pdf_path),
             parse_timestamp=datetime.now().isoformat(),
             variables=variables,
-            calculation_type="cox",  # Using HR values suggests Cox model
+            calculation_type="nomogram",  # Using nomogram risk table
             coefficients=coefficients,
-            notes=notes + ["Parsed from PDF Table 3 using HR values"]
+            risk_lookup_table=risk_lookup_table,
+            notes=notes + ["Parsed from PDF Table 3 with nomogram risk lookup"]
         )
 
         self.metadata = metadata
         return metadata
+
+    def _extract_risk_lookup_table(self, table_data: List[List[str]]) -> Optional[Dict]:
+        """
+        Extract nomogram risk lookup table from table data.
+
+        This method attempts to parse the risk percentages from the table.
+        If parsing fails, returns None and fallback will be used.
+
+        Args:
+            table_data: Raw table data
+
+        Returns:
+            Risk lookup dictionary or None
+        """
+        # TODO: Implement actual table parsing for risk values
+        # For now, return None to use default fallback table
+        # The table structure is complex with nested headers for SCC/AC
+        return None
 
     def _create_variable_definition(self, var_info: Dict) -> Optional[VariableDefinition]:
         """Create a VariableDefinition from extracted variable info."""
@@ -343,6 +372,7 @@ class Table3Parser:
         """
         Create fallback model when parsing fails.
         Based on the Beyond Sedlis paper Table 3 values.
+        Includes nomogram risk lookup table.
         """
         variables = [
             VariableDefinition(
@@ -355,13 +385,14 @@ class Table3Parser:
                 name="invasion_depth",
                 display_name="Deep Stromal Invasion",
                 type="categorical",
-                categories={"No": 0, "Yes": 1},
+                categories={"Superficial": 0, "Middle": 1, "Deep": 2},
                 coefficient=np.log(2.51)  # HR=2.51
             ),
             VariableDefinition(
                 name="tumor_size",
                 display_name="Tumor Size",
-                type="continuous",
+                type="categorical",
+                categories={"<2cm": 0, "2-4cm": 1, "≥4cm": 2},
                 unit="cm",
                 coefficient=np.log(1.35)  # per cm HR=1.35
             ),
@@ -375,20 +406,72 @@ class Table3Parser:
             )
         ]
 
+        # Nomogram risk lookup table from Beyond Sedlis paper Table 3
+        # Key: (Vascular Invasion, DSI Category, Size Category) → Risk Percentage
+        risk_lookup_table = {
+            "SCC": {
+                # VI=No
+                ("No", "Superficial", "<2cm"): 6,
+                ("No", "Superficial", "2-4cm"): 8,
+                ("No", "Superficial", "≥4cm"): 13,
+                ("No", "Middle", "<2cm"): 14,
+                ("No", "Middle", "2-4cm"): 19,
+                ("No", "Middle", "≥4cm"): 27,
+                ("No", "Deep", "<2cm"): 32,  # User's example case
+                ("No", "Deep", "2-4cm"): 41,
+                ("No", "Deep", "≥4cm"): 54,
+                # VI=Yes
+                ("Yes", "Superficial", "<2cm"): 12,
+                ("Yes", "Superficial", "2-4cm"): 16,
+                ("Yes", "Superficial", "≥4cm"): 24,
+                ("Yes", "Middle", "<2cm"): 25,
+                ("Yes", "Middle", "2-4cm"): 33,
+                ("Yes", "Middle", "≥4cm"): 44,
+                ("Yes", "Deep", "<2cm"): 48,
+                ("Yes", "Deep", "2-4cm"): 59,
+                ("Yes", "Deep", "≥4cm"): 71,
+            },
+            "AC": {
+                # VI=No
+                ("No", "Superficial", "<2cm"): 7,
+                ("No", "Superficial", "2-4cm"): 15,
+                ("No", "Superficial", "≥4cm"): 24,
+                ("No", "Middle", "<2cm"): 9,
+                ("No", "Middle", "2-4cm"): 18,
+                ("No", "Middle", "≥4cm"): 29,
+                ("No", "Deep", "<2cm"): 11,
+                ("No", "Deep", "2-4cm"): 22,
+                ("No", "Deep", "≥4cm"): 35,
+                # VI=Yes
+                ("Yes", "Superficial", "<2cm"): 16,
+                ("Yes", "Superficial", "2-4cm"): 30,
+                ("Yes", "Superficial", "≥4cm"): 45,
+                ("Yes", "Middle", "<2cm"): 20,
+                ("Yes", "Middle", "2-4cm"): 37,
+                ("Yes", "Middle", "≥4cm"): 53,
+                ("Yes", "Deep", "<2cm"): 26,
+                ("Yes", "Deep", "2-4cm"): 46,
+                ("Yes", "Deep", "≥4cm"): 63,
+            }
+        }
+
         return Table3Metadata(
             source_file=os.path.basename(self.pdf_path),
             parse_timestamp=datetime.now().isoformat(),
             variables=variables,
-            calculation_type="cox",
+            calculation_type="nomogram",  # Using nomogram risk table
             coefficients={
                 "vascular_invasion": np.log(2.15),
                 "invasion_depth": np.log(2.51),
                 "tumor_size": np.log(1.35),
                 "tissue_type": np.log(0.43)
             },
+            risk_lookup_table=risk_lookup_table,
             notes=[
-                "Using default values from Beyond Sedlis paper (Table 3)",
-                "HR values: Vascular Invasion=2.15, DSI=2.51, Tumor Size=1.35/cm, SCC vs AC=0.43"
+                "Using nomogram risk lookup table from Beyond Sedlis paper (Table 3)",
+                "Risk values are 3-year recurrence risk percentages",
+                "DSI categories: Superficial (<3mm), Middle (3-7mm), Deep (≥7mm)",
+                "Size categories: <2cm, 2-4cm, ≥4cm"
             ]
         )
 

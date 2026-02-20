@@ -10,6 +10,7 @@ from backend.models import (
     VascularInvasion,
     TissueType
 )
+from backend import risk_mapper
 
 logger = logging.getLogger(__name__)
 
@@ -50,26 +51,80 @@ class RiskCalculator:
             RiskPredictionResponse with results
         """
         try:
-            # Get coefficient values for each variable
-            coeffs = self._get_coefficients()
+            # First, try to use nomogram risk lookup table
+            if self.metadata.risk_lookup_table:
+                risk_result = self._calculate_from_lookup_table(request)
+                if risk_result is not None:
+                    return risk_result
 
-            # Calculate linear predictor (risk score)
-            linear_predictor = self._calculate_linear_predictor(request, coeffs)
+            # Fallback to Cox model calculation
+            logger.info("Using Cox model calculation as fallback")
+            return self._calculate_from_cox_model(request)
 
-            # Convert to probability (using logistic transformation)
-            # For Cox model without baseline, we use a simplified approach
-            risk_percent = self._linear_predictor_to_risk(linear_predictor)
+        except Exception as e:
+            logger.error(f"Calculation error: {e}")
+            return RiskPredictionResponse(
+                success=False,
+                error=str(e),
+                explanation=f"Calculation failed: {str(e)}"
+            )
+
+    def _calculate_from_lookup_table(self, request: RiskPredictionRequest) -> Optional[RiskPredictionResponse]:
+        """
+        Calculate risk using nomogram lookup table.
+
+        Args:
+            request: RiskPredictionRequest with input values
+
+        Returns:
+            RiskPredictionResponse or None if lookup fails
+        """
+        try:
+            # Get DSI input (either depth value or category)
+            depth_mm = request.invasion_depth
+            dsi_category = getattr(request, 'invasion_depth_category', None)
+
+            # Get size input (either size value or category)
+            size_cm = request.tumor_size
+            size_category = getattr(request, 'tumor_size_category', None)
+
+            # Look up risk
+            risk_percent = risk_mapper.lookup_risk(
+                risk_table=self.metadata.risk_lookup_table,
+                vascular_invasion=request.vascular_invasion.value,
+                invasion_depth=depth_mm,
+                invasion_depth_category=dsi_category,
+                tumor_size=size_cm,
+                tumor_size_category=size_category,
+                tissue_type=request.tissue_type.value
+            )
+
+            if risk_percent is None:
+                logger.warning("Risk lookup failed, will fallback to Cox calculation")
+                return None
 
             # Determine risk level
             risk_level = self._get_risk_level(risk_percent)
 
-            # Build explanation
-            explanation = self._build_explanation(request, coeffs, linear_predictor, risk_percent)
+            # Get normalized inputs for explanation
+            vi_norm = risk_mapper.normalize_vascular_invasion(request.vascular_invasion.value)
+            dsi_norm = risk_mapper.normalize_dsi(depth_mm, dsi_category)
+            size_norm = risk_mapper.normalize_size(size_cm, size_category)
+            type_norm = risk_mapper.normalize_tissue_type(request.tissue_type.value)
 
-            # Build intermediate values for transparency
-            intermediate_values = self._build_intermediate_values(
-                request, coeffs, linear_predictor
+            # Build explanation
+            explanation = self._build_lookup_explanation(
+                vi_norm, dsi_norm, size_norm, type_norm, risk_percent
             )
+
+            # Build intermediate values
+            intermediate_values = {
+                "vascular_invasion": {"input": request.vascular_invasion.value, "normalized": vi_norm},
+                "invasion_depth": {"input_mm": depth_mm, "input_category": dsi_category, "normalized": dsi_norm},
+                "tumor_size": {"input_cm": size_cm, "input_category": size_category, "normalized": size_norm},
+                "tissue_type": {"input": request.tissue_type.value, "normalized": type_norm},
+                "risk_source": "nomogram_lookup_table"
+            }
 
             return RiskPredictionResponse(
                 success=True,
@@ -81,12 +136,49 @@ class RiskCalculator:
             )
 
         except Exception as e:
-            logger.error(f"Calculation error: {e}")
-            return RiskPredictionResponse(
-                success=False,
-                error=str(e),
-                explanation=f"Calculation failed: {str(e)}"
-            )
+            logger.error(f"Lookup table error: {e}")
+            return None
+
+    def _calculate_from_cox_model(self, request: RiskPredictionRequest) -> RiskPredictionResponse:
+        """
+        Calculate risk using Cox model (fallback method).
+
+        Args:
+            request: RiskPredictionRequest with input values
+
+        Returns:
+            RiskPredictionResponse with results
+        """
+        # Get coefficient values for each variable
+        coeffs = self._get_coefficients()
+
+        # Calculate linear predictor (risk score)
+        linear_predictor = self._calculate_linear_predictor(request, coeffs)
+
+        # Convert to probability (using logistic transformation)
+        # For Cox model without baseline, we use a simplified approach
+        risk_percent = self._linear_predictor_to_risk(linear_predictor)
+
+        # Determine risk level
+        risk_level = self._get_risk_level(risk_percent)
+
+        # Build explanation
+        explanation = self._build_explanation(request, coeffs, linear_predictor, risk_percent)
+
+        # Build intermediate values for transparency
+        intermediate_values = self._build_intermediate_values(
+            request, coeffs, linear_predictor
+        )
+        intermediate_values["risk_source"] = "cox_model"
+
+        return RiskPredictionResponse(
+            success=True,
+            recurrence_risk_percent=round(risk_percent, 2),
+            risk_level=risk_level,
+            intermediate_values=intermediate_values,
+            explanation=explanation,
+            warnings=["Using Cox model calculation (nomogram lookup not available)"]
+        )
 
     def _get_coefficients(self) -> Dict[str, float]:
         """Get coefficient values from metadata."""
@@ -109,9 +201,19 @@ class RiskCalculator:
         vi_coef = coeffs.get("vascular_invasion", np.log(2.15))
         lp += vi_coef * vi_value
 
-        # Deep Stromal Invasion (binary in this model)
-        # Assuming invasion_depth > 10mm means deep invasion
-        dsi_value = 1 if request.invasion_depth >= 10 else 0
+        # Deep Stromal Invasion - handle both depth value and category
+        dsi_category = getattr(request, 'invasion_depth_category', None)
+        if dsi_category:
+            # Use category directly
+            dsi_norm = risk_mapper.normalize_dsi(None, dsi_category)
+            # Map category to numeric: Superficial=0, Middle=0.5, Deep=1
+            dsi_value = {"Superficial": 0, "Middle": 0.5, "Deep": 1}.get(dsi_norm, 0)
+        elif request.invasion_depth is not None:
+            # Use depth value: >= 10mm is considered deep
+            dsi_value = 1 if request.invasion_depth >= 10 else 0
+        else:
+            dsi_value = 0
+
         dsi_coef = coeffs.get("invasion_depth", np.log(2.51))
         lp += dsi_coef * dsi_value
 
@@ -160,6 +262,34 @@ class RiskCalculator:
             return "Intermediate"
         else:
             return "High"
+
+    def _build_lookup_explanation(
+        self,
+        vi: str,
+        dsi: str,
+        size: str,
+        tissue_type: str,
+        risk_percent: float
+    ) -> str:
+        """Build explanation for nomogram lookup table calculation."""
+        lines = [
+            "## Nomogram Recurrence Risk (From Table 3)",
+            "",
+            "### Input Values:",
+            f"- Vascular Invasion: {vi}",
+            f"- Deep Stromal Invasion: {dsi}",
+            f"- Tumor Size: {size}",
+            f"- Histologic Type: {tissue_type}",
+            "",
+            f"### Result:",
+            f"- **3-Year Recurrence Risk**: {risk_percent}%",
+            f"- **Risk Level**: {self._get_risk_level(risk_percent)}",
+            "",
+            "*Note: Risk value is obtained directly from the nomogram lookup table",
+            "in Beyond Sedlis Table 3, based on clinical outcomes data.*"
+        ]
+
+        return "\n".join(lines)
 
     def _build_explanation(
         self,

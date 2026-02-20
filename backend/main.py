@@ -171,8 +171,10 @@ async def upload_pdf(file: UploadFile = File(...)):
 @app.post("/api/predict", response_model=RiskPredictionResponse)
 async def predict_risk(
     vascular_invasion: str = Form(...),
-    invasion_depth: float = Form(...),
-    tumor_size: float = Form(...),
+    invasion_depth: Optional[float] = Form(None),
+    invasion_depth_category: Optional[str] = Form(None),
+    tumor_size: Optional[float] = Form(None),
+    tumor_size_category: Optional[str] = Form(None),
     tissue_type: str = Form(...),
     model_id: Optional[str] = Form(None)
 ):
@@ -181,23 +183,35 @@ async def predict_risk(
 
     Args:
         vascular_invasion: Vascular invasion status (Yes/No)
-        invasion_depth: Invasion depth in mm
-        tumor_size: Tumor size in cm
+        invasion_depth: Invasion depth in mm (optional)
+        invasion_depth_category: DSI category - Superficial/Middle/Deep (optional)
+        tumor_size: Tumor size in cm (optional)
+        tumor_size_category: Size category - <2cm/2-4cm/≥4cm (optional)
         tissue_type: Histologic type (SCC/AC)
         model_id: Optional model ID from uploaded PDF
 
     Returns:
         RiskPredictionResponse with calculated risk
+
+    Note: For each of (invasion_depth, tumor_size), either the numeric value
+    or the category must be provided.
     """
     try:
         # Validate and create request
         request = RiskPredictionRequest(
             vascular_invasion=vascular_invasion,
             invasion_depth=invasion_depth,
-            tumor_size=tumor_size,
+            invasion_depth_category=invasion_depth_category,
+            tumor_size=tumor_size if tumor_size is not None else 0.0,  # Placeholder if using category
             tissue_type=tissue_type,
             model_id=model_id
         )
+
+        # Add category as extra attribute (not in model but used by calculator)
+        if invasion_depth_category:
+            request.invasion_depth_category = invasion_depth_category
+        if tumor_size_category:
+            request.tumor_size_category = tumor_size_category
 
         # Get model metadata
         if model_id and model_id in models_store:

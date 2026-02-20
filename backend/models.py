@@ -19,7 +19,8 @@ class VascularInvasion(str, Enum):
 class RiskPredictionRequest(BaseModel):
     """Request model for risk prediction"""
     vascular_invasion: VascularInvasion = Field(..., description="Vascular invasion status")
-    invasion_depth: float = Field(..., description="Invasion depth in mm or category value", ge=0)
+    invasion_depth: Optional[float] = Field(None, description="Invasion depth in mm (optional)")
+    invasion_depth_category: Optional[str] = Field(None, description="Invasion depth category: Superficial/Middle/Deep")
     tumor_size: float = Field(..., description="Tumor size in cm", ge=0)
     tissue_type: TissueType = Field(..., description="Histologic type (SCC or AC)")
     model_id: Optional[str] = Field(None, description="Model ID from parsed PDF")
@@ -41,12 +42,13 @@ class Table3Metadata(BaseModel):
     source_file: str
     parse_timestamp: str
     variables: List[VariableDefinition]
-    calculation_type: str  # 'logistic', 'cox', 'points'
+    calculation_type: str  # 'logistic', 'cox', 'points', 'nomogram'
     intercept: Optional[float] = None
     baseline_hazard: Optional[float] = None
     coefficients: Dict[str, float] = {}
     point_mappings: Optional[Dict[str, Dict[str, float]]] = None
     total_points_to_risk: Optional[Dict[float, float]] = None
+    risk_lookup_table: Optional[Dict[str, Any]] = None  # nomogram risk lookup: {type: {(vi, dsi, size): risk}}
     notes: List[str] = []
 
 

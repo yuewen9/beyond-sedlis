@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beyond Sedlis - Nomogram Recurrence Risk Calculator</title>
+    <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Beyond Sedlis Nomogram</h1>
+            <p class="subtitle">Cervical Cancer Recurrence Risk Calculator</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Risk Calculator Form -->
+            <section class="calculator-section" id="calculatorSection">
+                <h2 class="section-title">Calculate Recurrence Risk</h2>
+
+                <form id="riskForm" class="risk-form">
+                    <!-- Vascular Invasion -->
+                    <div class="form-group">
+                        <label class="form-label" for="vascularInvasion">
+                            Vascular Invasion
+                            <span class="required">*</span>
+                        </label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="vascularInvasion" value="Yes" required>
+                                <span class="radio-text">Yes</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="vascularInvasion" value="No" required>
+                                <span class="radio-text">No</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Invasion Depth -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            Stromal Invasion Depth
+                            <span class="required">*</span>
+                        </label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="invasionDepth" value="superficial" required>
+                                <span class="radio-text">Superficial (&lt;5mm)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="invasionDepth" value="middle" required>
+                                <span class="radio-text">Middle (5-9mm)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="invasionDepth" value="deep" required>
+                                <span class="radio-text">Deep (≥10mm)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Tumor Size -->
+                    <div class="form-group">
+                        <label class="form-label" for="tumorSize">
+                            Tumor Size
+                            <span class="required">*</span>
+                        </label>
+                        <div class="input-with-unit">
+                            <input
+                                type="number"
+                                id="tumorSize"
+                                name="tumorSize"
+                                min="0"
+                                max="20"
+                                step="0.1"
+                                placeholder="Enter size"
+                                required
+                            >
+                            <span class="unit">cm</span>
+                        </div>
+                    </div>
+
+                    <!-- Tissue Type -->
+                    <div class="form-group">
+                        <label class="form-label" for="tissueType">
+                            Histologic Type
+                            <span class="required">*</span>
+                        </label>
+                        <select id="tissueType" name="tissueType" required class="form-select">
+                            <option value="">Select type</option>
+                            <option value="SCC">SCC - Squamous Cell Carcinoma</option>
+                            <option value="AC">AC - Adenocarcinoma</option>
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-lg" id="calculateBtn">
+                        Calculate Risk
+                    </button>
+                </form>
+
+                <!-- Loading State -->
+                <div class="loading hidden" id="loadingState">
+                    <div class="spinner"></div>
+                    <p>Calculating recurrence risk...</p>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section hidden" id="resultsSection">
+                <h2 class="section-title">Recurrence Risk Result</h2>
+
+                <div class="results-card">
+                    <!-- Risk Percentage -->
+                    <div class="risk-display">
+                        <div class="risk-value" id="riskValue">--%</div>
+                        <div class="risk-label">Nomogram Recurrence Risk</div>
+                    </div>
+
+                    <!-- Risk Level -->
+                    <div class="risk-level" id="riskLevel">
+                        <span class="risk-label-text">Risk Level:</span>
+                        <span class="risk-badge" id="riskBadge">--</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-labels">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculation Details -->
+                <div class="details-card">
+                    <h3 class="details-title">Calculation Details</h3>
+                    <div class="details-content" id="detailsContent">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Calculate Again Button -->
+                <button class="btn btn-secondary" id="calculateAgainBtn">
+                    Calculate Again
+                </button>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Beyond Sedlis Nomogram Risk Calculator</p>
+            <p class="footer-note">Based on: "2021 Beyond Sedlis: A Risk-Adapted Management Approach"</p>
+        </footer>
+    </div>
+
+    <script src="static/app.js"></script>
+</body>
+</html>

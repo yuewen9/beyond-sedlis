@@ -43,10 +43,16 @@ cd backend
 pip install -q -r requirements.txt
 cd ..
 
-# Copy example PDF if not present
-if [ ! -f "examples/2021 Beyond Sedlis.pdf" ]; then
-    echo "Copying example PDF..."
-    cp "/home/jx1/projects/pdf/2021 Beyond Sedlis.pdf" examples/ 2>/dev/null || echo "Warning: Example PDF not found"
+# Optional: copy example PDF from custom path (e.g. export EXAMPLE_PDF_SOURCE="/path/to/file.pdf")
+if [ ! -f "examples/2021 Beyond Sedlis.pdf" ] && [ -n "${EXAMPLE_PDF_SOURCE:-}" ]; then
+    echo "Copying example PDF from EXAMPLE_PDF_SOURCE..."
+    if cp "$EXAMPLE_PDF_SOURCE" "examples/2021 Beyond Sedlis.pdf" 2>/dev/null; then
+        echo -e "${GREEN}Example PDF copied.${NC}"
+    else
+        echo -e "${YELLOW}Warning: Could not copy from EXAMPLE_PDF_SOURCE. Add PDFs to examples/ manually (see examples/README.md).${NC}"
+    fi
+elif [ ! -f "examples/2021 Beyond Sedlis.pdf" ]; then
+    echo -e "${YELLOW}Note: No example PDF in examples/. You can add PDFs for testing (see examples/README.md).${NC}"
 fi
 
 echo ""

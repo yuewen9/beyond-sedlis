@@ -48,13 +48,16 @@ env/
 ENV/
 .venv
 
-# FastAPI / uploads
-uploads/
-temp/
+# FastAPI / uploads (keep .gitkeep so dirs are tracked)
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/temp/*
+!backend/temp/.gitkeep
 *.pdf
 
-# Logs
-logs/
+# Logs (keep .gitkeep so dir is tracked)
+backend/logs/*
+!backend/logs/.gitkeep
 *.log
 
 # IDE

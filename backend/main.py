@@ -203,11 +203,16 @@ async def predict_risk(
         if model_id and model_id in models_store:
             metadata = models_store[model_id]
         else:
-            # Use default model if no model_id provided
-            logger.info("No model_id provided, using default model")
-            _, metadata, _ = parse_pdf_table3(
-                "/home/jx1/projects/pdf/2021 Beyond Sedlis.pdf"
-            )
+            # Use default model from examples/ if no model_id provided
+            default_pdf = Path(__file__).resolve().parent.parent / "examples" / "2021 Beyond Sedlis.pdf"
+            if not default_pdf.exists():
+                return RiskPredictionResponse(
+                    success=False,
+                    error="No model selected",
+                    explanation="Upload a PDF first to get a model, or place '2021 Beyond Sedlis.pdf' in the examples/ directory."
+                )
+            logger.info("No model_id provided, using default model from examples/")
+            _, metadata, _ = parse_pdf_table3(str(default_pdf))
 
         # Calculate risk
         result = calculate_risk(request, metadata)

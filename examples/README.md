@@ -21,16 +21,14 @@ A table with the following columns:
 3. **Tumor Size** (continuous in cm)
 4. **Histologic Type** (SCC vs AC comparison)
 
-## Example File
+## Adding Example PDFs
 
-An example PDF is available at:
-```
-/home/jx1/projects/pdf/2021 Beyond Sedlis.pdf
-```
+Place PDF files that match the required format in this `examples/` directory. If you add a file named `2021 Beyond Sedlis.pdf`, the API will use it as the default model when no model is selected after an upload.
 
-You can copy this file to the examples directory:
+To use a different source path when running the app, you can set the optional environment variable before starting:
 ```bash
-cp "/home/jx1/projects/pdf/2021 Beyond Sedlis.pdf" examples/
+export EXAMPLE_PDF_SOURCE="/path/to/your/2021 Beyond Sedlis.pdf"
+./run.sh
 ```
 
 ## Testing

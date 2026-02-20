@@ -33,5 +33,5 @@ echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Start server with auto-reload
-cd backend && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# Start server with auto-reload (PYTHONPATH=.. so "from backend.*" resolves when cwd is backend)
+cd backend && PYTHONPATH=".." uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload

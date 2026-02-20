@@ -1,9 +1,4 @@
-// Beyond Sedlis Nomogram - Frontend Application (Simplified, no upload)
-
-// API Configuration
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
-    : '';
+// Beyond Sedlis Nomogram - Frontend Application (Standalone, no backend)
 
 // Application State
 const state = {
@@ -21,6 +16,108 @@ const elements = {
     detailsContent: null,
     calculateAgainBtn: null
 };
+
+// Risk lookup table from Table 3 (Beyond Sedlis paper)
+// Key: (Vascular Invasion, DSI Category, Size Category) → Risk Percentage
+const RISK_LOOKUP_TABLE = {
+    "SCC": {
+        // VI=No
+        ["No", "Superficial", "<2cm"]: 5,     // <5%
+        ["No", "Middle", "<2cm"]: 18,
+        ["No", "Deep", "<2cm"]: 32,
+        ["No", "Superficial", "2-4cm"]: 5,    // <5%
+        ["No", "Middle", "2-4cm"]: 22,
+        ["No", "Deep", "2-4cm"]: 38,
+        ["No", "Superficial", ">=4cm"]: 10,
+        ["No", "Middle", ">=4cm"]: 28,
+        ["No", "Deep", ">=4cm"]: 42,
+        // VI=Yes
+        ["Yes", "Superficial", "<2cm"]: 5,    // <5%
+        ["Yes", "Middle", "<2cm"]: 22,
+        ["Yes", "Deep", "<2cm"]: 38,
+        ["Yes", "Superficial", "2-4cm"]: 8,
+        ["Yes", "Middle", "2-4cm"]: 26,
+        ["Yes", "Deep", "2-4cm"]: 40,
+        ["Yes", "Superficial", ">=4cm"]: 14,
+        ["Yes", "Middle", ">=4cm"]: 32,
+        ["Yes", "Deep", ">=4cm"]: 46,
+    },
+    "AC": {
+        // VI=No
+        ["No", "Superficial", "<2cm"]: 5,     // <5%
+        ["No", "Middle", "<2cm"]: 5,          // <5%
+        ["No", "Deep", "<2cm"]: 6,
+        ["No", "Superficial", "2-4cm"]: 24,
+        ["No", "Middle", "2-4cm"]: 20,
+        ["No", "Deep", "2-4cm"]: 26,
+        ["No", "Superficial", ">=4cm"]: 34,
+        ["No", "Middle", ">=4cm"]: 30,
+        ["No", "Deep", ">=4cm"]: 36,
+        // VI=Yes
+        ["Yes", "Superficial", "<2cm"]: 20,
+        ["Yes", "Middle", "<2cm"]: 18,
+        ["Yes", "Deep", "<2cm"]: 22,
+        ["Yes", "Superficial", "2-4cm"]: 40,
+        ["Yes", "Middle", "2-4cm"]: 38,
+        ["Yes", "Deep", "2-4cm"]: 42,
+        ["Yes", "Superficial", ">=4cm"]: 50,
+        ["Yes", "Middle", ">=4cm"]: 46,
+        ["Yes", "Deep", ">=4cm"]: 52,
+    }
+};
+
+// Size category mapping
+function getSizeCategory(sizeCm) {
+    if (sizeCm < 2) return "<2cm";
+    if (sizeCm < 4) return "2-4cm";
+    return ">=4cm";
+}
+
+// Get risk level from percentage
+function getRiskLevel(riskPercent) {
+    if (riskPercent < 15) return "Low";
+    if (riskPercent < 30) return "Intermediate";
+    return "High";
+}
+
+// Look up risk from table
+function lookupRisk(vi, dsi, sizeCm, tissueType) {
+    const sizeCategory = getSizeCategory(sizeCm);
+    const key = [vi, dsi, sizeCategory];
+
+    if (tissueType in RISK_LOOKUP_TABLE) {
+        const table = RISK_LOOKUP_TABLE[tissueType];
+        if (key in table) {
+            return table[key];
+        }
+    }
+    return null;
+}
+
+// Build explanation text
+function buildExplanation(vi, dsi, sizeCm, tissueType, riskPercent) {
+    const sizeCategory = getSizeCategory(sizeCm);
+
+    let explanation = `### Risk Calculation Details\n\n`;
+    explanation += `**Parameters:**\n`;
+    explanation += `- Vascular Invasion: ${vi}\n`;
+    explanation += `- Stromal Invasion Depth: ${dsi}\n`;
+    explanation += `- Tumor Size: ${sizeCm} cm (${sizeCategory})\n`;
+    explanation += `- Histologic Type: ${tissueType}\n\n`;
+
+    explanation += `### Result\n\n`;
+    explanation += `Based on the Beyond Sedlis nomogram (Table 3), `;
+    explanation += `the estimated **3-year recurrence risk** is **${riskPercent}%**.\n\n`;
+
+    const riskLevel = getRiskLevel(riskPercent);
+    explanation += `**Risk Level:** ${riskLevel}\n\n`;
+
+    explanation += `### Reference\n\n`;
+    explanation += `Risk values derived from the Beyond Sedlis nomogram `;
+    explanation += `for early-stage cervical cancer.`;
+
+    return explanation;
+}
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
@@ -57,7 +154,7 @@ function showCalculator() {
     elements.riskForm.reset();
 }
 
-async function handleCalculate(e) {
+function handleCalculate(e) {
     e.preventDefault();
 
     if (state.isCalculating) return;
@@ -73,16 +170,13 @@ async function handleCalculate(e) {
         'deep': 'Deep'
     };
 
-    const data = {
-        vascular_invasion: formData.get('vascularInvasion'),
-        invasion_depth_category: dsiMap[invasionDepthCategory],
-        tumor_size: parseFloat(formData.get('tumorSize')),
-        tissue_type: formData.get('tissueType')
-    };
+    const vi = formData.get('vascularInvasion');
+    const dsi = dsiMap[invasionDepthCategory];
+    const sizeCm = parseFloat(formData.get('tumorSize'));
+    const tissueType = formData.get('tissueType');
 
     // Validate
-    if (!data.vascular_invasion || !data.invasion_depth_category ||
-        isNaN(data.tumor_size) || !data.tissue_type) {
+    if (!vi || !dsi || isNaN(sizeCm) || !tissueType) {
         alert('Please fill in all required fields.');
         return;
     }
@@ -92,32 +186,34 @@ async function handleCalculate(e) {
     elements.riskForm.classList.add('hidden');
     elements.loadingState.classList.remove('hidden');
 
-    try {
-        const response = await fetch(`${API_BASE}/api/predict`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(data)
-        });
+    // Simulate calculation delay for UX
+    setTimeout(() => {
+        try {
+            // Look up risk from table
+            const riskPercent = lookupRisk(vi, dsi, sizeCm, tissueType);
 
-        const result = await response.json();
+            if (riskPercent !== null) {
+                const riskLevel = getRiskLevel(riskPercent);
+                const explanation = buildExplanation(vi, dsi, sizeCm, tissueType, riskPercent);
 
-        if (result.success) {
-            showResults(result);
-        } else {
-            alert(`Calculation error: ${result.error || 'Unknown error'}`);
+                showResults({
+                    recurrence_risk_percent: riskPercent,
+                    risk_level: riskLevel,
+                    explanation: explanation
+                });
+            } else {
+                alert('Unable to calculate risk for the given parameters.');
+                showCalculator();
+            }
+        } catch (error) {
+            console.error('Calculation error:', error);
+            alert('Calculation error. Please try again.');
             showCalculator();
+        } finally {
+            state.isCalculating = false;
+            elements.loadingState.classList.add('hidden');
         }
-
-    } catch (error) {
-        console.error('Calculation error:', error);
-        alert('Network error. Please try again.');
-        showCalculator();
-    } finally {
-        state.isCalculating = false;
-        elements.loadingState.classList.add('hidden');
-    }
+    }, 500);
 }
 
 function showResults(result) {

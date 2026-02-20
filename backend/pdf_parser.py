@@ -406,52 +406,52 @@ class Table3Parser:
             )
         ]
 
-        # Nomogram risk lookup table from Beyond Sedlis paper Table 3
+        # Nomogram risk lookup table from Beyond Sedlis paper Table 3 (page 18)
         # Key: (Vascular Invasion, DSI Category, Size Category) → Risk Percentage
         risk_lookup_table = {
             "SCC": {
                 # VI=No
-                ("No", "Superficial", "<2cm"): 6,
-                ("No", "Superficial", "2-4cm"): 8,
-                ("No", "Superficial", "≥4cm"): 13,
-                ("No", "Middle", "<2cm"): 14,
-                ("No", "Middle", "2-4cm"): 19,
-                ("No", "Middle", "≥4cm"): 27,
-                ("No", "Deep", "<2cm"): 32,  # User's example case
-                ("No", "Deep", "2-4cm"): 41,
-                ("No", "Deep", "≥4cm"): 54,
+                ("No", "Superficial", "<2cm"): 5,    # <5%
+                ("No", "Middle", "<2cm"): 18,         # User's case: should be 18%
+                ("No", "Deep", "<2cm"): 32,
+                ("No", "Superficial", "2-4cm"): 5,   # <5%
+                ("No", "Middle", "2-4cm"): 22,
+                ("No", "Deep", "2-4cm"): 38,
+                ("No", "Superficial", "≥4cm"): 10,
+                ("No", "Middle", "≥4cm"): 28,
+                ("No", "Deep", "≥4cm"): 42,
                 # VI=Yes
-                ("Yes", "Superficial", "<2cm"): 12,
-                ("Yes", "Superficial", "2-4cm"): 16,
-                ("Yes", "Superficial", "≥4cm"): 24,
-                ("Yes", "Middle", "<2cm"): 25,
-                ("Yes", "Middle", "2-4cm"): 33,
-                ("Yes", "Middle", "≥4cm"): 44,
-                ("Yes", "Deep", "<2cm"): 48,
-                ("Yes", "Deep", "2-4cm"): 59,
-                ("Yes", "Deep", "≥4cm"): 71,
+                ("Yes", "Superficial", "<2cm"): 5,   # <5%
+                ("Yes", "Middle", "<2cm"): 22,
+                ("Yes", "Deep", "<2cm"): 38,
+                ("Yes", "Superficial", "2-4cm"): 8,
+                ("Yes", "Middle", "2-4cm"): 26,
+                ("Yes", "Deep", "2-4cm"): 40,
+                ("Yes", "Superficial", "≥4cm"): 14,
+                ("Yes", "Middle", "≥4cm"): 32,
+                ("Yes", "Deep", "≥4cm"): 46,
             },
             "AC": {
                 # VI=No
-                ("No", "Superficial", "<2cm"): 7,
-                ("No", "Superficial", "2-4cm"): 15,
-                ("No", "Superficial", "≥4cm"): 24,
-                ("No", "Middle", "<2cm"): 9,
-                ("No", "Middle", "2-4cm"): 18,
-                ("No", "Middle", "≥4cm"): 29,
-                ("No", "Deep", "<2cm"): 11,
-                ("No", "Deep", "2-4cm"): 22,
-                ("No", "Deep", "≥4cm"): 35,
+                ("No", "Superficial", "<2cm"): 5,    # <5%
+                ("No", "Middle", "<2cm"): 5,         # <5%
+                ("No", "Deep", "<2cm"): 6,
+                ("No", "Superficial", "2-4cm"): 24,
+                ("No", "Middle", "2-4cm"): 20,
+                ("No", "Deep", "2-4cm"): 26,
+                ("No", "Superficial", "≥4cm"): 34,
+                ("No", "Middle", "≥4cm"): 30,
+                ("No", "Deep", "≥4cm"): 36,
                 # VI=Yes
-                ("Yes", "Superficial", "<2cm"): 16,
-                ("Yes", "Superficial", "2-4cm"): 30,
-                ("Yes", "Superficial", "≥4cm"): 45,
-                ("Yes", "Middle", "<2cm"): 20,
-                ("Yes", "Middle", "2-4cm"): 37,
-                ("Yes", "Middle", "≥4cm"): 53,
-                ("Yes", "Deep", "<2cm"): 26,
-                ("Yes", "Deep", "2-4cm"): 46,
-                ("Yes", "Deep", "≥4cm"): 63,
+                ("Yes", "Superficial", "<2cm"): 20,
+                ("Yes", "Middle", "<2cm"): 18,
+                ("Yes", "Deep", "<2cm"): 22,
+                ("Yes", "Superficial", "2-4cm"): 40,
+                ("Yes", "Middle", "2-4cm"): 38,
+                ("Yes", "Deep", "2-4cm"): 42,
+                ("Yes", "Superficial", "≥4cm"): 50,
+                ("Yes", "Middle", "≥4cm"): 46,
+                ("Yes", "Deep", "≥4cm"): 52,
             }
         }
 
